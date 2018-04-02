@@ -4,6 +4,7 @@ import skimage.transform
 from serpent.game_agent import GameAgent
 from serpent.input_controller import KeyboardKey, MouseButton
 import plugins.SerpentMinecraftGameAgentPlugin.files.helpers.autoencoder as ae
+import traceback
 
 
 class SerpentMinecraftGameAgent(GameAgent):
@@ -18,8 +19,16 @@ class SerpentMinecraftGameAgent(GameAgent):
         cwd = os.getcwd()
         print(cwd)
         self.count = 0
+        print("init finished")
+        # try:
+        #     raise Exception("lolol")
+        # except:
+        #     traceback.print_stack()
+        #     # exit(0)
+
 
     def setup_play(self):
+        print("in setup")
         self.input_controller.tap_key(KeyboardKey.KEY_ESCAPE)
 
     def handle_play(self, game_frame):
@@ -58,5 +67,6 @@ class SerpentMinecraftGameAgent(GameAgent):
         self.visual_debugger.store_image_data(output, output.shape, "2")
         self.visual_debugger.store_image_data(resized, resized.shape, "3")
 
+        # do outputs
         self.input_controller.tap_key(KeyboardKey.KEY_W)
         self.input_controller.move(x=32, y=0, duration=0.05, absolute=False)
