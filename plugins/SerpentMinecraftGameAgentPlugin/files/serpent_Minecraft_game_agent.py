@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import skimage.transform
 from serpent.game_agent import GameAgent
 from serpent.input_controller import KeyboardKey, MouseButton
@@ -14,6 +15,9 @@ class SerpentMinecraftGameAgent(GameAgent):
 
         self.frame_handler_setups["PLAY"] = self.setup_play
         self.model = ae.my_model()
+        cwd = os.getcwd()
+        print(cwd)
+        self.count = 0
 
     def setup_play(self):
         self.input_controller.tap_key(KeyboardKey.KEY_ESCAPE)
@@ -41,17 +45,16 @@ class SerpentMinecraftGameAgent(GameAgent):
         resized = np.array(skimage.transform.resize(frame, shape, mode="reflect", order=1) * 255, dtype="uint8")
         # print(resized.shape)
         self.model.train(resized)
-        output = (self.model.evaluate(resized) * 255).astype('uint8')
-        print(output.shape)
-        output = np.reshape(output, (128, 256, 3))
+        output = self.model.evaluate(resized)
+        self.count += 1
+        print(self.count)
 
 
-        for i, game_frame in enumerate(self.game_frame_buffer.frames):
-            self.visual_debugger.store_image_data(
-                game_frame.frame,
-                game_frame.frame.shape,
-                str(i)
-            )
+        self.visual_debugger.store_image_data(
+            game_frame.frame,
+            game_frame.frame.shape,
+            "1"
+        )
         self.visual_debugger.store_image_data(output, output.shape, "2")
         self.visual_debugger.store_image_data(resized, resized.shape, "3")
 
