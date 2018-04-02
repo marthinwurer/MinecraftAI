@@ -12,7 +12,7 @@ class SerpentMinecraftGamePlugin(offshoot.Plugin):
     ]
 
     config = {
-        "fps": 5
+        "fps": 2
     }
 
     @classmethod
