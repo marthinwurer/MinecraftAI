@@ -6,6 +6,7 @@ from serpent.input_controller import KeyboardKey, MouseButton
 import plugins.SerpentMinecraftGameAgentPlugin.files.helpers.autoencoder as ae
 import traceback
 
+shape = (64, 64, 3)
 
 class SerpentMinecraftGameAgent(GameAgent):
 
@@ -15,7 +16,7 @@ class SerpentMinecraftGameAgent(GameAgent):
         self.frame_handlers["PLAY"] = self.handle_play
 
         self.frame_handler_setups["PLAY"] = self.setup_play
-        self.model = ae.my_model()
+        self.model = ae.their_model(shape, 0.1)
         cwd = os.getcwd()
         print(cwd)
         self.count = 0
@@ -45,13 +46,10 @@ class SerpentMinecraftGameAgent(GameAgent):
         # print(game_frame.frame.shape)
         # print(self.game.window_geometry["x_offset"])
         # print(self.game.window_geometry["y_offset"])
-        shape = (
-            128,
-            256
-        )
         frame = game_frame.frame
 
-        resized = np.array(skimage.transform.resize(frame, shape, mode="reflect", order=1) * 255, dtype="uint8")
+        resized = np.array(skimage.transform.resize(frame, shape[:-1], mode="reflect", order=1) * 255, dtype="uint8")
+        print(resized.shape)
         # print(resized.shape)
         self.model.train(resized)
         output = self.model.evaluate(resized)
