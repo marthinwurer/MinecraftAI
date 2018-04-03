@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 import os
 import skimage.transform
@@ -56,6 +58,8 @@ class SerpentMinecraftGameAgent(GameAgent):
         self.count += 1
         print(self.count)
 
+        choice = random.randint(0, 5)
+
 
         self.visual_debugger.store_image_data(
             game_frame.frame,
@@ -66,5 +70,16 @@ class SerpentMinecraftGameAgent(GameAgent):
         self.visual_debugger.store_image_data(resized, resized.shape, "3")
 
         # do outputs
-        self.input_controller.tap_key(KeyboardKey.KEY_W)
-        self.input_controller.move(x=32, y=0, duration=0.05, absolute=False)
+        if choice == 0:
+            self.input_controller.tap_key(KeyboardKey.KEY_W)
+        elif choice == 1:
+            self.input_controller.tap_key(KeyboardKey.KEY_W)
+        elif choice == 2:
+            self.input_controller.move(x=0, y=32, duration=0.05, absolute=False)
+        elif choice == 3:
+            self.input_controller.move(x=32, y=0, duration=0.05, absolute=False)
+        elif choice == 4:
+            self.input_controller.move(x=0, y=-32, duration=0.05, absolute=False)
+        elif choice == 5:
+            self.input_controller.move(x=-32, y=0, duration=0.05, absolute=False)
+

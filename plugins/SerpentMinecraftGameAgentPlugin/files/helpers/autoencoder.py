@@ -9,14 +9,14 @@ import numpy as np
 
 def build_encoder(shape, drop, input_img):
     epsilon_std = 1.0
-    latent_dim = 512
-    x = Conv2D(32, 4, padding='valid', strides=2, activation='relu')(input_img)
+    latent_dim = 1024
+    x = Conv2D(32, 4, padding='valid', strides=2, activation='elu')(input_img)
     x = Dropout(drop)(x)
-    x = Conv2D(64, 4, padding='valid', strides=2, activation='relu')(x)
+    x = Conv2D(64, 4, padding='valid', strides=2, activation='elu')(x)
     x = Dropout(drop)(x)
-    x = Conv2D(128, 4, padding='valid', strides=2, activation='relu')(x)
+    x = Conv2D(128, 4, padding='valid', strides=2, activation='elu')(x)
     x = Dropout(drop)(x)
-    x = Conv2D(256, 4, padding='valid', strides=2, activation='relu')(x)
+    x = Conv2D(256, 4, padding='valid', strides=2, activation='elu')(x)
     x = Dropout(drop)(x)
     x = Flatten()(x)
     mu = Dense(latent_dim)(x)
@@ -31,9 +31,7 @@ def build_encoder(shape, drop, input_img):
 
     # note that "output_shape" isn't necessary with the TensorFlow backend
     z = Lambda(sampling, output_shape=(latent_dim,))([mu, sigma])
-
     encoded = z
-
     return encoded
 
 
@@ -43,13 +41,13 @@ def build_decoder(shape, drop, encoded):
     x = Dense(1024)
 
     x = Reshape((1, 1, -1))(encoded)
-    x = Conv2DTranspose(128, 5, padding='valid', strides=2, activation='relu')(x)
+    x = Conv2DTranspose(128, 5, padding='same', strides=4, activation='elu')(x)
     x = Dropout(drop)(x)
-    x = Conv2DTranspose(64, 5, padding='valid', strides=2, activation='relu')(x)
+    x = Conv2DTranspose(64, 5, padding='same', strides=4, activation='elu')(x)
     x = Dropout(drop)(x)
-    x = Conv2DTranspose(32, 6, padding='valid', strides=2, activation='relu')(x)
+    x = Conv2DTranspose(32, 6, padding='same', strides=2, activation='elu')(x)
     x = Dropout(drop)(x)
-    decoded = Conv2DTranspose(3, 6, padding='valid', strides=2, activation='sigmoid')(x)
+    decoded = Conv2DTranspose(3, 6, padding='same', strides=2, activation='sigmoid')(x)
     return decoded
 
 
@@ -60,7 +58,7 @@ def build_autoencoder(shape, drop=0.5):
     autoencoder = Model(input_img, decoded)
     autoencoder.summary()
     opt = Adam()
-    # opt = SGD(lr=0.25, momentum=.9, clipvalue=0.5)
+    # opt = SGD(lr=0.5, momentum=.9, clipvalue=0.5)
     autoencoder.compile(optimizer=opt, loss='mean_squared_error')
 
     return autoencoder
