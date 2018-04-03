@@ -18,7 +18,7 @@ class SerpentMinecraftGameAgent(GameAgent):
         self.frame_handlers["PLAY"] = self.handle_play
 
         self.frame_handler_setups["PLAY"] = self.setup_play
-        self.model = ae.their_model(shape, 0.1)
+        self.model = ae.my_model(shape, 0.5)
         cwd = os.getcwd()
         print(cwd)
         self.count = 0

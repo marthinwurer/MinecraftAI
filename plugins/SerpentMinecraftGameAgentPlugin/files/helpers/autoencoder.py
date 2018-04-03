@@ -115,9 +115,9 @@ class their_model:
 
 class my_model:
 
-    def __init__(self):
-        drop = 0.5
-        input_img = Input(shape=(128, 256, 3))
+    def __init__(self, shape, drop=0.5):
+        self.shape = shape
+        input_img = Input(shape=shape)
         x = Conv2D(32, (3, 3), padding='same')(input_img)
         x = LeakyReLU()(x)
         x = AveragePooling2D((2, 2), padding='same')(x)
@@ -186,7 +186,7 @@ class my_model:
         out = self.model.predict(np.asarray([data]))
         # out = matplotlib.colors.hsv_to_rgb(out)
         out = (out * 256).astype('uint8')
-        out = np.reshape(out, (128, 256, 3))
+        out = np.reshape(out, self.shape)
         return out
 
 
