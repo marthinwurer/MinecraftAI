@@ -16,6 +16,7 @@ import traceback
 shape = (64, 64, 3)
 NUM_DIRS = 16
 NUM_FRAMES = 16
+BATCH_SIZE = 16
 
 class SerpentMinecraftGameAgent(GameAgent):
 
@@ -26,7 +27,7 @@ class SerpentMinecraftGameAgent(GameAgent):
 
         self.frame_handler_setups["PLAY"] = self.setup_play
         self.frame_handler_pause_callbacks["PLAY"] = self.handle_pause
-        self.model = ae.my_model(shape, 0.5)
+        self.model = ae.their_model(shape, 0.5)
         cwd = os.getcwd()
         print(cwd)
 
@@ -71,7 +72,7 @@ class SerpentMinecraftGameAgent(GameAgent):
         # get the highest file number
         max = 0
         for file in [x for x in dir.glob('*.png')]:
-            num = int(re.search('data(\d*)', file).group(1))
+            num = int(re.search('data(\d*)', str(file.parts[-1])).group(1))
             max = num if num > max else max
 
         max += 1
@@ -100,7 +101,7 @@ class SerpentMinecraftGameAgent(GameAgent):
         print("in paused")
 
         self.paused = True
-        self.save_data()
+        # self.save_data()
 
     def handle_play(self, game_frame):
         """
@@ -114,21 +115,47 @@ class SerpentMinecraftGameAgent(GameAgent):
         # serpent play Minecraft SerpentMinecraftGameAgent
 
         self.paused = False
+        count = self.count
         self.count += 1
 
         frame = game_frame.frame
 
+        resized = np.array(skimage.transform.resize(frame, shape[:-1], mode="reflect", order=1) * 255, dtype="uint8")
+
         # save the frame
-        current_dir = (self.count // NUM_FRAMES) % NUM_DIRS
-        current_frame = self.count % NUM_FRAMES
-        self.dataset[current_dir][current_frame] = frame
+        current_dir = (count // NUM_FRAMES) % NUM_DIRS
+        current_frame = count % NUM_FRAMES
+        self.dataset[current_dir][current_frame] = resized
+        print(current_frame, current_dir)
+
+        # if we're done with the batch, train
+        if current_frame == 0:
+            # pause
+            self.input_controller.tap_key(KeyboardKey.KEY_ESCAPE)
+            batch = []
+            for dir in range(NUM_DIRS):
+                for in_dir in range(BATCH_SIZE//NUM_DIRS):
+                    # the 0th should always have something in it
+
+                    data = random.choice(self.dataset[dir])
+                    if data is None:
+                        data = self.dataset[0][0]
+                    batch.append(data)
+            self.model.train_on_batch(batch)
+
+            # save the dataset every so often
+            # if current_dir == 0:
+            #     self.save_data()
+
+            self.input_controller.tap_key(KeyboardKey.KEY_ESCAPE)
+
 
 
         resized = np.array(skimage.transform.resize(frame, shape[:-1], mode="reflect", order=1) * 255, dtype="uint8")
         print(resized.shape)
-        self.model.train(resized)
+        # self.model.train(resized)
         output = self.model.evaluate(resized)
-        print(self.count)
+        print(count)
 
         choice = random.randint(0, 5)
 
@@ -138,20 +165,20 @@ class SerpentMinecraftGameAgent(GameAgent):
             game_frame.frame.shape,
             "1"
         )
-        self.visual_debugger.store_image_data(output, output.shape, "2")
-        self.visual_debugger.store_image_data(resized, resized.shape, "3")
+        self.visual_debugger.store_image_data(output, output.shape, "3")
+        self.visual_debugger.store_image_data(resized, resized.shape, "2")
 
         # do outputs
         if choice == 0:
             self.input_controller.tap_key(KeyboardKey.KEY_W)
         elif choice == 1:
-            self.input_controller.tap_key(KeyboardKey.KEY_W)
-        elif choice == 2:
-            self.input_controller.move(x=0, y=32, duration=0.05, absolute=False)
+            self.input_controller.move(x=64, y=0, duration=0.05, absolute=False)
+        # elif choice == 2:
+        #     self.input_controller.move(x=0, y=64, duration=0.05, absolute=False)
         elif choice == 3:
-            self.input_controller.move(x=32, y=0, duration=0.05, absolute=False)
-        elif choice == 4:
-            self.input_controller.move(x=0, y=-32, duration=0.05, absolute=False)
+            self.input_controller.move(x=64, y=0, duration=0.05, absolute=False)
+        # elif choice == 4:
+        #     self.input_controller.move(x=0, y=-64, duration=0.05, absolute=False)
         elif choice == 5:
-            self.input_controller.move(x=-32, y=0, duration=0.05, absolute=False)
+            self.input_controller.move(x=-64, y=0, duration=0.05, absolute=False)
 
