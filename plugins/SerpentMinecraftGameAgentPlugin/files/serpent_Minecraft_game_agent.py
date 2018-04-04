@@ -155,7 +155,7 @@ class SerpentMinecraftGameAgent(GameAgent):
         print(resized.shape)
         # self.model.train(resized)
         output = self.model.evaluate(resized)
-        print(count)
+        print(count, output.shape)
 
         choice = random.randint(0, 5)
 

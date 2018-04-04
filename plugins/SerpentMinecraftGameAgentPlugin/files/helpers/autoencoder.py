@@ -166,7 +166,7 @@ class my_model(ae_model):
         reshaped = Reshape((1, 1, -1))(x)
 
 
-        reshaped = Conv2DTranspose(8, (8, 8), strides=8, padding='same', name="upsampling")(reshaped)
+        reshaped = Conv2DTranspose(128, 3, strides=8, padding='same', name="upsampling")(reshaped)
 
 
         # x = BatchNormalization()(x)
