@@ -138,15 +138,15 @@ class my_model:
         x = LeakyReLU()(x)
         encoded = MaxPooling2D((2, 2), padding='same')(x)
 
-        # variational = build_variational(1024, encoded)
-        #
-        # # at this point the representation is (16, 8, 8) i.e. 128-dimensional
-        # x = Dense(1024)
-        #
-        # x = Reshape((1, 1, -1))(encoded)
+        variational = build_variational(1024, encoded)
+
+        # at this point the representation is (16, 8, 8) i.e. 128-dimensional
+        x = Dense(1024)(variational)
+
+        reshaped = Reshape((8, 8, -1))(x)
 
         # x = BatchNormalization()(x)
-        x = Conv2D(128, (3, 3), padding='same')(encoded)
+        x = Conv2D(128, (3, 3), padding='same')(reshaped)
         x = LeakyReLU()(x)
         x = Dropout(drop)(x)
         # x = BatchNormalization()(x)
@@ -159,7 +159,7 @@ class my_model:
         x = Dropout(drop)(x)
         # x = BatchNormalization()(x)
         # x = Conv2DTranspose(8, (3, 3), strides=2, padding='same')(x)
-        x = UpSampling2D(size=(2, 2))(x)
+        x = UpSampling2D(size=2)(x)
         # x = LeakyReLU()(x)
         # x = UpSampling2D((2, 2))(x)
         x = Conv2D(32, (3, 3), padding='same')(x)
