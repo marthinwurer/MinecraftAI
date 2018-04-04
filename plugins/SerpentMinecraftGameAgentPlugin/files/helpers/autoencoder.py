@@ -7,9 +7,27 @@ from keras import backend as K
 
 import numpy as np
 
-def build_encoder(shape, drop, input_img):
+
+def build_variational(latent, inlayer):
     epsilon_std = 1.0
-    latent_dim = 1024
+    x = Flatten()(inlayer)
+    mu = Dense(latent)(x)
+    sigma = Dense(latent)(x)
+
+    # taken from https://github.com/keras-team/keras/blob/master/examples/variational_autoencoder.py
+    def sampling(args):
+        z_mean, z_log_var = args
+        epsilon = K.random_normal(shape=(K.shape(z_mean)[0], latent), mean=0.,
+                                  stddev=epsilon_std)
+        return z_mean + K.exp(z_log_var / 2) * epsilon
+
+    # note that "output_shape" isn't necessary with the TensorFlow backend
+    z = Lambda(sampling, output_shape=(latent,))([mu, sigma])
+    encoded = z
+    return encoded
+
+
+def build_encoder(shape, drop, input_img):
     x = Conv2D(32, 4, padding='valid', strides=2, activation='elu')(input_img)
     x = Dropout(drop)(x)
     x = Conv2D(64, 4, padding='valid', strides=2, activation='elu')(x)
@@ -18,29 +36,15 @@ def build_encoder(shape, drop, input_img):
     x = Dropout(drop)(x)
     x = Conv2D(256, 4, padding='valid', strides=2, activation='elu')(x)
     x = Dropout(drop)(x)
-    x = Flatten()(x)
-    mu = Dense(latent_dim)(x)
-    sigma = Dense(latent_dim)(x)
-
-    # taken from https://github.com/keras-team/keras/blob/master/examples/variational_autoencoder.py
-    def sampling(args):
-        z_mean, z_log_var = args
-        epsilon = K.random_normal(shape=(K.shape(z_mean)[0], latent_dim), mean=0.,
-                                  stddev=epsilon_std)
-        return z_mean + K.exp(z_log_var / 2) * epsilon
-
-    # note that "output_shape" isn't necessary with the TensorFlow backend
-    z = Lambda(sampling, output_shape=(latent_dim,))([mu, sigma])
-    encoded = z
-    return encoded
+    return x
 
 
 
 def build_decoder(shape, drop, encoded):
 
-    x = Dense(1024)
+    x = Dense(1024)(encoded)
 
-    x = Reshape((1, 1, -1))(encoded)
+    x = Reshape((1, 1, -1))(x)
     x = Conv2DTranspose(128, 5, padding='same', strides=4, activation='elu')(x)
     x = Dropout(drop)(x)
     x = Conv2DTranspose(64, 5, padding='same', strides=4, activation='elu')(x)
@@ -52,9 +56,11 @@ def build_decoder(shape, drop, encoded):
 
 
 def build_autoencoder(shape, drop=0.5):
+    latent_dim = 1024
     input_img = Input(shape=shape)
     encoded = build_encoder(shape, drop, input_img)
-    decoded = build_decoder(shape, drop, encoded)
+    variational = build_variational(latent_dim, encoded)
+    decoded = build_decoder(shape, drop, variational)
     autoencoder = Model(input_img, decoded)
     autoencoder.summary()
     opt = Adam()
@@ -132,7 +138,12 @@ class my_model:
         x = LeakyReLU()(x)
         encoded = MaxPooling2D((2, 2), padding='same')(x)
 
-        # at this point the representation is (16, 8, 8) i.e. 128-dimensional
+        # variational = build_variational(1024, encoded)
+        #
+        # # at this point the representation is (16, 8, 8) i.e. 128-dimensional
+        # x = Dense(1024)
+        #
+        # x = Reshape((1, 1, -1))(encoded)
 
         # x = BatchNormalization()(x)
         x = Conv2D(128, (3, 3), padding='same')(encoded)
@@ -185,7 +196,7 @@ class my_model:
 
         out = self.model.predict(np.asarray([data]))
         # out = matplotlib.colors.hsv_to_rgb(out)
-        out = (out * 256).astype('uint8')
+        out = (out * 255).astype('uint8')
         out = np.reshape(out, self.shape)
         return out
 
