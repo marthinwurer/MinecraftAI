@@ -49,21 +49,21 @@ def build_decoder(shape, drop, encoded):
     x = Dense(1024)(encoded)
 
     x = Reshape((1, 1, -1))(x)
-    x = Conv2DTranspose(128, 5, padding='same', strides=4, activation='elu')(x)
+    x = Conv2DTranspose(128, 5, padding='valid', strides=5, activation='elu')(x)
     # x = BatchNormalization()(x)
     x = Dropout(drop)(x)
-    x = Conv2DTranspose(64, 5, padding='same', strides=4, activation='elu')(x)
+    x = Conv2DTranspose(64, 5, padding='valid', strides=2, activation='elu')(x)
     # x = BatchNormalization()(x)
     x = Dropout(drop)(x)
-    x = Conv2DTranspose(32, 6, padding='same', strides=2, activation='elu')(x)
+    x = Conv2DTranspose(32, 6, padding='valid', strides=2, activation='elu')(x)
     # x = BatchNormalization()(x)
     x = Dropout(drop)(x)
-    decoded = Conv2DTranspose(3, 6, padding='same', strides=2, activation='sigmoid')(x)
+    decoded = Conv2DTranspose(3, 6, padding='valid', strides=2, activation='sigmoid')(x)
     return decoded
 
 
 def build_autoencoder(shape, drop=0.5):
-    latent_dim = 1024
+    latent_dim = 32
     input_img = Input(shape=shape)
     encoded = build_encoder(shape, drop, input_img)
     variational = build_variational(latent_dim, encoded)
