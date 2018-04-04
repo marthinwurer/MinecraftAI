@@ -143,7 +143,11 @@ class my_model:
         # at this point the representation is (16, 8, 8) i.e. 128-dimensional
         x = Dense(1024)(variational)
 
-        reshaped = Reshape((8, 8, -1))(x)
+        reshaped = Reshape((1, 1, -1))(x)
+
+
+        reshaped = Conv2DTranspose(8, (8, 8), strides=8, padding='same', name="upsampling")(reshaped)
+
 
         # x = BatchNormalization()(x)
         x = Conv2D(128, (3, 3), padding='same')(reshaped)
