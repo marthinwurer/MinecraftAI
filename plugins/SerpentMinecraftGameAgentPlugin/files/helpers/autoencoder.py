@@ -25,7 +25,7 @@ def build_variational(latent, inlayer):
     # note that "output_shape" isn't necessary with the TensorFlow backend
     z = Lambda(sampling, output_shape=(latent,))([mu, sigma])
     encoded = z
-    return encoded
+    return z, mu, sigma
 
 
 def build_encoder(shape, drop, input_img):
@@ -67,7 +67,7 @@ def build_autoencoder(shape, drop=0.5):
     latent_dim = 32
     input_img = Input(shape=shape)
     encoded = build_encoder(shape, drop, input_img)
-    variational = build_variational(latent_dim, encoded)
+    variational = build_variational(latent_dim, encoded)[0]
     decoded = build_decoder(shape, drop, variational)
     autoencoder = Model(input_img, decoded)
     autoencoder.summary()
@@ -77,24 +77,7 @@ def build_autoencoder(shape, drop=0.5):
 
     return autoencoder
 
-def evaluate(model, data:np.ndarray)->np.ndarray:
-    data = data.astype('float32')/255. # Make sure that the data is between 0 and 1
-    # data = matplotlib.colors.rgb_to_hsv(data)
-
-    out = model.predict(np.asarray([data]))
-    # out = matplotlib.colors.hsv_to_rgb(out)
-    out = (out * 256).astype('uint8')
-    out = np.reshape(out, (128, 256, 3))
-    return out
-
-def train(model, data):
-    data = data.astype('float32')/255. # Make sure that the data is between 0 and 1
-    data = np.asarray([data])
-    # data = matplotlib.colors.rgb_to_hsv(data)
-    output = model.train_on_batch(data, data)
-    print(output)
-
-class ae_model:
+class autoencoder:
     def __init__(self, shape):
         self.shape = shape
         self.model = None
@@ -133,15 +116,15 @@ class ae_model:
         print(output)
 
 
-class their_model(ae_model):
+class their_autoencoder(autoencoder):
 
     def __init__(self, shape, drop=0.5):
-        super(their_model, self).__init__(shape)
+        super(their_autoencoder, self).__init__(shape)
         self.model = build_autoencoder(shape, drop)
 
 
 
-class my_model(ae_model):
+class my_autoencoder(autoencoder):
 
     def __init__(self, shape, drop=0.5):
         super().__init__(shape)
@@ -160,7 +143,7 @@ class my_model(ae_model):
         x = LeakyReLU()(x)
         encoded = MaxPooling2D((2, 2), padding='same')(x)
 
-        variational = build_variational(1024, encoded)
+        variational = build_variational(1024, encoded)[0]
 
         # at this point the representation is (16, 8, 8) i.e. 128-dimensional
         x = Dense(1024)(variational)
@@ -168,7 +151,7 @@ class my_model(ae_model):
         reshaped = Reshape((1, 1, -1))(x)
 
 
-        reshaped = Conv2DTranspose(128, 3, strides=8, padding='same', name="upsampling")(reshaped)
+        reshaped = Conv2DTranspose(128, 8, strides=8, padding='same', name="upsampling")(reshaped)
 
 
         # x = BatchNormalization()(x)
@@ -178,10 +161,10 @@ class my_model(ae_model):
         # x = BatchNormalization()(x)
         # x = Conv2DTranspose(8, (3, 3), strides=2, padding='same')(x)
         x = UpSampling2D(size=(2, 2))(x)
-        x = LeakyReLU()(x)
+        # x = LeakyReLU()(x)
         # x = UpSampling2D((2, 2))(x)
         x = Conv2D(64, (3, 3), padding='same')(x)
-        # x = LeakyReLU()(x)
+        x = LeakyReLU()(x)
         x = Dropout(drop)(x)
         # x = BatchNormalization()(x)
         # x = Conv2DTranspose(8, (3, 3), strides=2, padding='same')(x)

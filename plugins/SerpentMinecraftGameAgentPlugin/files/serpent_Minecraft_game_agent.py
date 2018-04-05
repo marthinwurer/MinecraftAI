@@ -28,7 +28,7 @@ class SerpentMinecraftGameAgent(GameAgent):
 
         self.frame_handler_setups["PLAY"] = self.setup_play
         self.frame_handler_pause_callbacks["PLAY"] = self.handle_pause
-        self.model = ae.my_model(shape, 0.5)
+        self.model = ae.my_autoencoder(shape, 0.5)
         cwd = os.getcwd()
         print(cwd)
 
@@ -124,7 +124,7 @@ class SerpentMinecraftGameAgent(GameAgent):
         self.dataset[current_dir][current_frame] = resized
         print(current_frame, current_dir)
 
-        filename = self.my_datasets/ "data" / ("data" + str(max) + ".png")
+        filename = self.my_datasets/ "data" / ("data" + str(self.image_num) + ".png")
         matplotlib.image.imsave(filename, resized)
 
 
