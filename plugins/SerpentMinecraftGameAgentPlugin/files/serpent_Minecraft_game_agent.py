@@ -8,6 +8,7 @@ import os
 
 import re
 import skimage.transform
+from keras.losses import mean_squared_error
 from serpent.game_agent import GameAgent
 from serpent.input_controller import KeyboardKey, MouseButton
 import plugins.SerpentMinecraftGameAgentPlugin.files.helpers.autoencoder as ae
@@ -16,7 +17,7 @@ import traceback
 shape = (64, 64, 3)
 NUM_DIRS = 16
 NUM_FRAMES = 16
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 
 class SerpentMinecraftGameAgent(GameAgent):
 
@@ -27,30 +28,24 @@ class SerpentMinecraftGameAgent(GameAgent):
 
         self.frame_handler_setups["PLAY"] = self.setup_play
         self.frame_handler_pause_callbacks["PLAY"] = self.handle_pause
-        self.model = ae.their_model(shape, 0.5)
+        self.model = ae.my_model(shape, 0.5)
         cwd = os.getcwd()
         print(cwd)
 
         self.paused = False
         self.count = 0
         self.my_datasets = Path(cwd + "/mydata/")
-        p = self.my_datasets
-        if p.exists():
-            # get the highest count in the main directory
-            all_imgs = p / 'all'
-            max = 0
-            for file in [x for x in all_imgs.glob('*.png')]:
-                num = int(re.search('(\d*)', file).group(1))  # assuming filename is "filexxx.txt"
-                # compare num to previous max, e.g.
-                max = num if num > max else max  # set max = 0 before for-loop
 
-            self.count = max
-        else:
-            # make all the paths
-            print("creating directories")
-            for ii in range(NUM_DIRS):
-                dir = p / str(ii)
-                dir.mkdir(parents=True, exist_ok=True)
+        # set up dataset creation
+        dire = self.my_datasets / "data"
+        dire.mkdir(parents=True, exist_ok=True)
+        max_img = 0
+        for file in [x for x in dire.glob('*.png')]:
+            num = int(re.search('data(\d*)', str(file.parts[-1])).group(1))
+            max_img = num if num > max_img else max_img
+
+        self.image_num = max_img
+
         print(self.count)
 
         # set up the in-memory dataset
@@ -117,6 +112,7 @@ class SerpentMinecraftGameAgent(GameAgent):
         self.paused = False
         count = self.count
         self.count += 1
+        self.image_num += 1
 
         frame = game_frame.frame
 
@@ -127,6 +123,10 @@ class SerpentMinecraftGameAgent(GameAgent):
         current_frame = count % NUM_FRAMES
         self.dataset[current_dir][current_frame] = resized
         print(current_frame, current_dir)
+
+        filename = self.my_datasets/ "data" / ("data" + str(max) + ".png")
+        matplotlib.image.imsave(filename, resized)
+
 
         # if we're done with the batch, train
         if current_frame == 0:
@@ -154,8 +154,8 @@ class SerpentMinecraftGameAgent(GameAgent):
         resized = np.array(skimage.transform.resize(frame, shape[:-1], mode="reflect", order=1) * 255, dtype="uint8")
         print(resized.shape)
         # self.model.train(resized)
-        output = self.model.evaluate(resized)
-        print(count, output.shape)
+        output, loss = self.model.evaluate(resized)
+        print(count, output.shape, loss)
 
         choice = random.randint(0, 5)
 

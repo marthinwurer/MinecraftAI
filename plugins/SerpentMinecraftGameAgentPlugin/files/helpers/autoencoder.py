@@ -6,6 +6,7 @@ from keras.optimizers import Adam, SGD
 from keras import backend as K
 
 import numpy as np
+from sklearn.metrics import mean_squared_error
 
 
 def build_variational(latent, inlayer):
@@ -98,7 +99,7 @@ class ae_model:
         self.shape = shape
         self.model = None
 
-    def evaluate(self, data:np.ndarray)->np.ndarray:
+    def evaluate(self, data:np.ndarray)->(np.ndarray, float):
         """
 
         Args:
@@ -111,10 +112,11 @@ class ae_model:
         # data = matplotlib.colors.rgb_to_hsv(data)
 
         out = self.model.predict(np.asarray([data]))
+        out = np.reshape(out, self.shape)
+        loss = np.square(np.subtract(data, out)).mean()
         # out = matplotlib.colors.hsv_to_rgb(out)
         out = (out * 255).astype('uint8')
-        out = np.reshape(out, self.shape)
-        return out
+        return out, loss
 
 
     def train(self, data):
