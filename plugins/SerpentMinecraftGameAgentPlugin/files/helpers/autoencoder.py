@@ -59,7 +59,7 @@ def build_decoder(shape, drop, encoded):
     x = Conv2DTranspose(32, 6, padding='valid', strides=2, activation='elu')(x)
     # x = BatchNormalization()(x)
     x = Dropout(drop)(x)
-    decoded = Conv2DTranspose(3, 6, padding='valid', strides=2, activation='sigmoid')(x)
+    decoded = Conv2DTranspose(3, 6, name="Decoded", padding='valid', strides=2, activation='sigmoid')(x)
     return decoded
 
 
