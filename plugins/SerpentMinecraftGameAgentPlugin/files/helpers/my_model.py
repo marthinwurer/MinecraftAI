@@ -1,20 +1,40 @@
 from keras import Input, Model
 from keras.layers import Dense
 from keras.optimizers import Adam
+import numpy as np
 
 import plugins.SerpentMinecraftGameAgentPlugin.files.helpers.autoencoder as autoencoder
 
 
 class model:
     def __init__(self, shape, control_shape):
+        self.ae = None
+        self.full = None
+        self.c_train = None
         self.shape = shape
         self.control_shape = control_shape
 
-    def evaluate(self, data, previous_control, previous_state):
-        raise NotImplemented()
+    def evaluate(self, data):
+        data = data.astype('float32')/255. # Make sure that the data is between 0 and 1
+        out = self.full.predict(np.asarray([data]))
+        decoded = out[0]
+        encoded = out[1]
+        control = out[2]
+        # print(type(out), out)
+        decoded = np.reshape(decoded, self.shape)
+        encoded = np.reshape(encoded, encoded.shape[1:])
+        control = np.reshape(control, control.shape[1:])
+        loss = np.square(np.subtract(data, decoded)).mean()
+        decoded = (decoded * 255).astype('uint8')
+        # for i in out:
+        #     print(type(i), i)
+        return decoded, encoded, control, loss
 
     def train_autoencoder(self, data):
-        raise NotImplemented()
+        data = np.asarray(data)
+        data = data.astype('float32')/255. # Make sure that the data is between 0 and 1
+        output = self.ae.train_on_batch(data, data)
+        return output
 
     def train_controller(self, hiddens, previous):
         raise NotImplemented()
@@ -33,7 +53,7 @@ class my_model(model):
         # define the ae model
         ae = Model(input_img, decoded)
         ae.summary()
-        opt = Adam(lr=0.0001)
+        opt = Adam(lr=0.001)
         # opt = SGD(lr=0.5, momentum=.9, clipvalue=0.5)
         ae.compile(optimizer=opt, loss='mean_squared_error')
         self.ae = ae
@@ -42,7 +62,7 @@ class my_model(model):
         # to be done later
 
         # define the control layers
-        control = Dense(1024, name="Control")
+        control = Dense(1024, activation='elu', name="Control")
         control_outputs = Dense(control_shape, name="Actions")
 
         # define the full model

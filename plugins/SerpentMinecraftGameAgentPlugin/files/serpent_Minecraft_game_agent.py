@@ -12,12 +12,15 @@ from keras.losses import mean_squared_error
 from serpent.game_agent import GameAgent
 from serpent.input_controller import KeyboardKey, MouseButton
 import plugins.SerpentMinecraftGameAgentPlugin.files.helpers.autoencoder as ae
+import plugins.SerpentMinecraftGameAgentPlugin.files.helpers.my_model as model
 import traceback
 
 shape = (64, 64, 3)
 NUM_DIRS = 16
 NUM_FRAMES = 16
 BATCH_SIZE = 32
+LATENT_SIZE = 1024
+CONTROL_SIZE = 6
 
 class SerpentMinecraftGameAgent(GameAgent):
 
@@ -28,7 +31,7 @@ class SerpentMinecraftGameAgent(GameAgent):
 
         self.frame_handler_setups["PLAY"] = self.setup_play
         self.frame_handler_pause_callbacks["PLAY"] = self.handle_pause
-        self.model = ae.my_autoencoder(shape, 0.5)
+        self.model = model.my_model(shape, 5, LATENT_SIZE)
         cwd = os.getcwd()
         print(cwd)
 
@@ -51,6 +54,11 @@ class SerpentMinecraftGameAgent(GameAgent):
         # set up the in-memory dataset
         self.dataset = [[None for _ in range(NUM_FRAMES) ] for _ in range(NUM_DIRS)]
 
+        # set up previous frame data
+        self.prev_latent = np.random.rand(LATENT_SIZE)
+        self.prev_choice = 0
+        self.prev_loss = 0.5
+        self.prev_control = np.random.rand(CONTROL_SIZE)
 
         print("init finished")
         # try:
@@ -141,7 +149,7 @@ class SerpentMinecraftGameAgent(GameAgent):
                     if data is None:
                         data = self.dataset[0][0]
                     batch.append(data)
-            self.model.train_on_batch(batch)
+            self.model.train_autoencoder(batch)
 
             # save the dataset every so often
             # if current_dir == 0:
@@ -151,13 +159,18 @@ class SerpentMinecraftGameAgent(GameAgent):
 
 
 
+
+
         resized = np.array(skimage.transform.resize(frame, shape[:-1], mode="reflect", order=1) * 255, dtype="uint8")
         print(resized.shape)
         # self.model.train(resized)
-        output, loss = self.model.evaluate(resized)
-        print(count, output.shape, loss)
+        outframe, encoded, control, loss = self.model.evaluate(resized)
 
-        choice = random.randint(0, 5)
+
+        # online training of the controller
+
+        # choice = random.randint(0, 5)
+        choice = np.argmax(control)
 
 
         self.visual_debugger.store_image_data(
@@ -165,20 +178,26 @@ class SerpentMinecraftGameAgent(GameAgent):
             game_frame.frame.shape,
             "1"
         )
-        self.visual_debugger.store_image_data(output, output.shape, "3")
+        self.visual_debugger.store_image_data(outframe, outframe.shape, "3")
         self.visual_debugger.store_image_data(resized, resized.shape, "2")
+
+
+        print(count, choice, loss)
 
         # do outputs
         if choice == 0:
             self.input_controller.tap_key(KeyboardKey.KEY_W)
         elif choice == 1:
+            self.input_controller.move(x=0, y=64, duration=0.05, absolute=False)
+        elif choice == 2:
             self.input_controller.move(x=64, y=0, duration=0.05, absolute=False)
-        # elif choice == 2:
-        #     self.input_controller.move(x=0, y=64, duration=0.05, absolute=False)
         elif choice == 3:
-            self.input_controller.move(x=64, y=0, duration=0.05, absolute=False)
-        # elif choice == 4:
-        #     self.input_controller.move(x=0, y=-64, duration=0.05, absolute=False)
-        elif choice == 5:
+            self.input_controller.move(x=0, y=-64, duration=0.05, absolute=False)
+        elif choice == 4:
             self.input_controller.move(x=-64, y=0, duration=0.05, absolute=False)
+
+        # store values for the next iteration's training
+        self.prev_choice = choice
+        self.prev_control = control
+        self.prev_latent = encoded
 
