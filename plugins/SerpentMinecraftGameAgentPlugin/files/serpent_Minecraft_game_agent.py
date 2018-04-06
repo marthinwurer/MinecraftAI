@@ -164,7 +164,6 @@ class SerpentMinecraftGameAgent(GameAgent):
 
 
         resized = np.array(skimage.transform.resize(frame, shape[:-1], mode="reflect", order=1) * 255, dtype="uint8")
-        print(resized.shape)
         # self.model.train(resized)
         prev_action = np.zeros(ACTION_SIZE)
         prev_action[self.prev_choice] = 1.0
@@ -175,7 +174,6 @@ class SerpentMinecraftGameAgent(GameAgent):
         # set up actions
         actions = np.copy(self.prev_control)
         actions[self.prev_choice] = loss
-        print(actions.shape)
         self.model.train_controller(self.prev_latent, self.prev_action, actions)
 
         if random.random() < 0.25:

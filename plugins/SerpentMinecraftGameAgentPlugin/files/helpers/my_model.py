@@ -50,8 +50,8 @@ class model:
 
 
 class my_model(model):
-    def __init__(self, shape, control_shape, latent):
-        super().__init__(shape, control_shape)
+    def __init__(self, shape, action_shape, latent):
+        super().__init__(shape, action_shape)
 
         # define the VAE layers
         input_img = Input(shape=shape)
@@ -68,13 +68,12 @@ class my_model(model):
         self.ae = ae
 
         # define the model layers
-        # to be done later
+        prev_action = Input((action_shape,), name="Prev_Action")
 
         # define the control layers
-        prev_action = Input((control_shape,), name="Prev_Action")
         control_input = Concatenate()
         control = Dense(1024, activation='elu', name="Control")
-        actions = Dense(control_shape, name="Actions")
+        actions = Dense(action_shape, name="Actions")
 
         # define the full model
         full_input = control_input([prev_action, variational])

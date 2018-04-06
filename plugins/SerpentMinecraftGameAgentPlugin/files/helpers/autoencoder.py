@@ -6,12 +6,11 @@ from keras.optimizers import Adam, SGD
 from keras import backend as K
 
 import numpy as np
-from sklearn.metrics import mean_squared_error
 
 
-def build_variational(latent, inlayer):
+def build_variational(latent, in_layer):
     epsilon_std = 1.0
-    x = Flatten()(inlayer)
+    x = Flatten()(in_layer)
     mu = Dense(latent, kernel_regularizer=regularizers.l2(0.01))(x)
     sigma = Dense(latent, kernel_regularizer=regularizers.l2(0.01))(x)
 
@@ -24,7 +23,6 @@ def build_variational(latent, inlayer):
 
     # note that "output_shape" isn't necessary with the TensorFlow backend
     z = Lambda(sampling, output_shape=(latent,))([mu, sigma])
-    encoded = z
     return z, mu, sigma
 
 
@@ -50,7 +48,7 @@ def build_decoder(shape, drop, encoded):
     x = Dense(1024)(encoded)
 
     x = Reshape((1, 1, -1))(x)
-    x = Conv2DTranspose(128, 5, padding='valid', strides=5, activation='elu')(x)
+    x = Conv2DTranspose(128, 5, padding='valid', strides=2, activation='elu')(x)
     # x = BatchNormalization()(x)
     x = Dropout(drop)(x)
     x = Conv2DTranspose(64, 5, padding='valid', strides=2, activation='elu')(x)
@@ -63,11 +61,10 @@ def build_decoder(shape, drop, encoded):
     return decoded
 
 
-def build_autoencoder(shape, drop=0.5):
-    latent_dim = 32
+def build_autoencoder(shape, latent=1024, drop=0.5):
     input_img = Input(shape=shape)
     encoded = build_encoder(shape, drop, input_img)
-    variational = build_variational(latent_dim, encoded)[0]
+    variational = build_variational(latent, encoded)[0]
     decoded = build_decoder(shape, drop, variational)
     autoencoder = Model(input_img, decoded)
     autoencoder.summary()
@@ -77,7 +74,7 @@ def build_autoencoder(shape, drop=0.5):
 
     return autoencoder
 
-class autoencoder:
+class Autoencoder:
     def __init__(self, shape):
         self.shape = shape
         self.model = None
@@ -116,15 +113,15 @@ class autoencoder:
         print(output)
 
 
-class their_autoencoder(autoencoder):
+class TheirAutoencoder(Autoencoder):
 
     def __init__(self, shape, drop=0.5):
-        super(their_autoencoder, self).__init__(shape)
-        self.model = build_autoencoder(shape, drop)
+        super(TheirAutoencoder, self).__init__(shape)
+        self.model = build_autoencoder(shape, 32, drop)
 
 
 
-class my_autoencoder(autoencoder):
+class MyAutoencoder(Autoencoder):
 
     def __init__(self, shape, drop=0.5):
         super().__init__(shape)
@@ -151,7 +148,7 @@ class my_autoencoder(autoencoder):
         reshaped = Reshape((1, 1, -1))(x)
 
 
-        reshaped = Conv2DTranspose(128, 8, strides=8, padding='same', name="upsampling")(reshaped)
+        reshaped = Conv2DTranspose(128, 8, strides=1, padding='valid', name="upsampling")(reshaped)
 
 
         # x = BatchNormalization()(x)
@@ -189,6 +186,7 @@ class my_autoencoder(autoencoder):
         self.opt = Adam()
         # self.opt = SGD(lr=0.25, momentum=.9, clipvalue=0.5)
         autoencoder.compile(optimizer=self.opt, loss='mean_squared_error')
+        # autoencoder.summary()
         self.model = autoencoder
 
 
