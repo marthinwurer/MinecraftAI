@@ -1,10 +1,12 @@
 from keras import Input, Model
-from keras.layers import Dense
+from keras.layers import Dense, Concatenate
 from keras.optimizers import Adam
 import numpy as np
 
 import plugins.SerpentMinecraftGameAgentPlugin.files.helpers.autoencoder as autoencoder
 
+def wrap(arr):
+    return np.asarray([arr])
 
 class model:
     def __init__(self, shape, control_shape):
@@ -14,9 +16,12 @@ class model:
         self.shape = shape
         self.control_shape = control_shape
 
-    def evaluate(self, data):
-        data = data.astype('float32')/255. # Make sure that the data is between 0 and 1
-        out = self.full.predict(np.asarray([data]))
+    def evaluate(self, frame, prev_action):
+
+        frame = frame.astype('float32') / 255. # Make sure that the data is between 0 and 1
+        frame = wrap(frame)
+        prev_action = wrap(prev_action)
+        out = self.full.predict([frame, prev_action])
         decoded = out[0]
         encoded = out[1]
         control = out[2]
@@ -24,7 +29,7 @@ class model:
         decoded = np.reshape(decoded, self.shape)
         encoded = np.reshape(encoded, encoded.shape[1:])
         control = np.reshape(control, control.shape[1:])
-        loss = np.square(np.subtract(data, decoded)).mean()
+        loss = np.square(np.subtract(frame, decoded)).mean()
         decoded = (decoded * 255).astype('uint8')
         # for i in out:
         #     print(type(i), i)
@@ -36,9 +41,11 @@ class model:
         output = self.ae.train_on_batch(data, data)
         return output
 
-    def train_controller(self, latent, actions):
-        latent = np.asarray(latent)
-        output = self.c_train.train_on_batch(latent, np.asarray(actions))
+    def train_controller(self, latent, prev_action, actions):
+        latent = wrap(latent)
+        prev_action = wrap(prev_action)
+        actions = wrap(actions)
+        output = self.c_train.train_on_batch([prev_action, latent], actions)
         return output
 
 
@@ -64,22 +71,26 @@ class my_model(model):
         # to be done later
 
         # define the control layers
+        prev_action = Input((control_shape,), name="Prev_Action")
+        control_input = Concatenate()
         control = Dense(1024, activation='elu', name="Control")
-        control_outputs = Dense(control_shape, name="Actions")
+        actions = Dense(control_shape, name="Actions")
 
         # define the full model
-        control_through = control(variational)
-        co_through = control_outputs(control_through)
-        full = Model(input_img, [decoded, variational, co_through])
+        full_input = control_input([prev_action, variational])
+        full_control = control(full_input)
+        full_actions = actions(full_control)
+        full = Model([input_img, prev_action], [decoded, variational, full_actions])
         full.summary()
         full.compile(opt, loss='mean_squared_error')
         self.full = full
 
         # define the controller training model
-        control_input = Input((latent,))
-        control_train = control(control_input)
-        co_train = control_outputs(control_train)
-        c_train = Model(control_input, co_train)
+        latent_input = Input((latent,))
+        train_input = control_input([prev_action, latent_input])
+        control_train = control(train_input)
+        train_actions = actions(control_train)
+        c_train = Model([prev_action, latent_input], train_actions)
         c_train.summary()
         c_train.compile(opt, loss='mean_squared_error')
         self.c_train = c_train

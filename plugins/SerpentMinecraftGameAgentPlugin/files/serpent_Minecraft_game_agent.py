@@ -20,7 +20,7 @@ NUM_DIRS = 16
 NUM_FRAMES = 16
 BATCH_SIZE = 32
 LATENT_SIZE = 1024
-CONTROL_SIZE = 6
+ACTION_SIZE = 6
 
 class SerpentMinecraftGameAgent(GameAgent):
 
@@ -31,7 +31,7 @@ class SerpentMinecraftGameAgent(GameAgent):
 
         self.frame_handler_setups["PLAY"] = self.setup_play
         self.frame_handler_pause_callbacks["PLAY"] = self.handle_pause
-        self.model = model.my_model(shape, CONTROL_SIZE, LATENT_SIZE)
+        self.model = model.my_model(shape, ACTION_SIZE, LATENT_SIZE)
         cwd = os.getcwd()
         print(cwd)
 
@@ -58,7 +58,9 @@ class SerpentMinecraftGameAgent(GameAgent):
         self.prev_latent = np.random.rand(LATENT_SIZE)
         self.prev_choice = 0
         self.prev_loss = 0.5
-        self.prev_control = np.random.rand(CONTROL_SIZE)
+        self.prev_control = np.random.rand(ACTION_SIZE)
+        self.prev_action = np.zeros(ACTION_SIZE)
+        self.prev_action[self.prev_choice] = 1.0
 
         print("init finished")
         # try:
@@ -67,29 +69,29 @@ class SerpentMinecraftGameAgent(GameAgent):
         #     traceback.print_stack()
         #     # exit(0)
 
-    def save_data(self):
-        # make the directory if it doesn't exist
-        dir = self.my_datasets / "data"
-        dir.mkdir(parents=True, exist_ok=True)
-
-        # get the highest file number
-        max = 0
-        for file in [x for x in dir.glob('*.png')]:
-            num = int(re.search('data(\d*)', str(file.parts[-1])).group(1))
-            max = num if num > max else max
-
-        max += 1
-        for set in self.dataset:
-            for image in set:
-                # if image doesn't exist, don't write it
-                if image is None:
-                    break
-                filename = dir / ("data" + str(max) + ".png")
-                matplotlib.image.imsave(filename, image)
-                print("saving %s" % max)
-                max += 1
-
-        # f = h5py.File(filename, 'w')
+    # def save_data(self):
+    #     # make the directory if it doesn't exist
+    #     dir = self.my_datasets / "data"
+    #     dir.mkdir(parents=True, exist_ok=True)
+    #
+    #     # get the highest file number
+    #     max = 0
+    #     for file in [x for x in dir.glob('*.png')]:
+    #         num = int(re.search('data(\d*)', str(file.parts[-1])).group(1))
+    #         max = num if num > max else max
+    #
+    #     max += 1
+    #     for set in self.dataset:
+    #         for image in set:
+    #             # if image doesn't exist, don't write it
+    #             if image is None:
+    #                 break
+    #             filename = dir / ("data" + str(max) + ".png")
+    #             matplotlib.image.imsave(filename, image)
+    #             print("saving %s" % max)
+    #             max += 1
+    #
+    #     f = h5py.File(filename, 'w')
 
 
 
@@ -164,7 +166,9 @@ class SerpentMinecraftGameAgent(GameAgent):
         resized = np.array(skimage.transform.resize(frame, shape[:-1], mode="reflect", order=1) * 255, dtype="uint8")
         print(resized.shape)
         # self.model.train(resized)
-        outframe, encoded, control, loss = self.model.evaluate(resized)
+        prev_action = np.zeros(ACTION_SIZE)
+        prev_action[self.prev_choice] = 1.0
+        outframe, encoded, control, loss = self.model.evaluate(resized, prev_action)
 
 
         # online training of the controller
@@ -172,7 +176,7 @@ class SerpentMinecraftGameAgent(GameAgent):
         actions = np.copy(self.prev_control)
         actions[self.prev_choice] = loss
         print(actions.shape)
-        self.model.train_controller([self.prev_latent], [actions])
+        self.model.train_controller(self.prev_latent, self.prev_action, actions)
 
         if random.random() < 0.25:
             choice = random.randint(0, 5)
@@ -207,4 +211,5 @@ class SerpentMinecraftGameAgent(GameAgent):
         self.prev_choice = choice
         self.prev_control = control
         self.prev_latent = encoded
+        self.prev_action = prev_action
 
