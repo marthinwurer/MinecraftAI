@@ -36,8 +36,10 @@ class model:
         output = self.ae.train_on_batch(data, data)
         return output
 
-    def train_controller(self, hiddens, previous):
-        raise NotImplemented()
+    def train_controller(self, latent, actions):
+        latent = np.asarray(latent)
+        output = self.c_train.train_on_batch(latent, np.asarray(actions))
+        return output
 
 
 class my_model(model):
@@ -53,7 +55,7 @@ class my_model(model):
         # define the ae model
         ae = Model(input_img, decoded)
         ae.summary()
-        opt = Adam(lr=0.001)
+        opt = Adam(lr=0.0001)
         # opt = SGD(lr=0.5, momentum=.9, clipvalue=0.5)
         ae.compile(optimizer=opt, loss='mean_squared_error')
         self.ae = ae

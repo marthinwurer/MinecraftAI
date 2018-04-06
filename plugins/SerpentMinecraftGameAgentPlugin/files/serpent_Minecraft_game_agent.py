@@ -31,7 +31,7 @@ class SerpentMinecraftGameAgent(GameAgent):
 
         self.frame_handler_setups["PLAY"] = self.setup_play
         self.frame_handler_pause_callbacks["PLAY"] = self.handle_pause
-        self.model = model.my_model(shape, 5, LATENT_SIZE)
+        self.model = model.my_model(shape, CONTROL_SIZE, LATENT_SIZE)
         cwd = os.getcwd()
         print(cwd)
 
@@ -168,9 +168,16 @@ class SerpentMinecraftGameAgent(GameAgent):
 
 
         # online training of the controller
+        # set up actions
+        actions = np.copy(self.prev_control)
+        actions[self.prev_choice] = loss
+        print(actions.shape)
+        self.model.train_controller([self.prev_latent], [actions])
 
-        # choice = random.randint(0, 5)
-        choice = np.argmax(control)
+        if random.random() < 0.25:
+            choice = random.randint(0, 5)
+        else:
+            choice = np.argmax(control)
 
 
         self.visual_debugger.store_image_data(
