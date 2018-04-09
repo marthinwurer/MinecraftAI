@@ -57,7 +57,8 @@ class my_model(model):
         input_img = Input(shape=shape)
         encoded = autoencoder.build_encoder(shape, 0.1, input_img)
         variational = autoencoder.build_variational(latent, encoded)[0]
-        decoded = autoencoder.build_decoder(shape, 0.1, variational)
+        decoded = autoencoder.MyAutoencoder.build_decoder(shape, 0.1, variational, latent)
+        # decoded = autoencoder.build_decoder(shape, 0.1, variational)
 
         # define the ae model
         ae = Model(input_img, decoded)

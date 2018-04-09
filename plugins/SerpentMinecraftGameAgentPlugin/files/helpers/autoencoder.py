@@ -43,9 +43,9 @@ def build_encoder(shape, drop, input_img):
 
 
 
-def build_decoder(shape, drop, encoded):
+def build_decoder(shape, drop, encoded, latent_size=1024):
 
-    x = Dense(1024)(encoded)
+    x = Dense(max(latent_size, 1024))(encoded)
 
     x = Reshape((1, 1, -1))(x)
     x = Conv2DTranspose(128, 5, padding='valid', strides=2, activation='elu')(x)
@@ -122,6 +122,29 @@ class TheirAutoencoder(Autoencoder):
 
 
 class MyAutoencoder(Autoencoder):
+
+    @staticmethod
+    def build_decoder(shape, drop, encoded, latent_size=1024):
+
+        x = Dense(max(latent_size, 1024))(encoded)
+        reshaped = Reshape((1, 1, -1))(x)
+        reshaped = Conv2DTranspose(128, 8, strides=1, padding='valid', name="upsampling")(reshaped)
+
+        x = Conv2D(128, (3, 3), padding='same')(reshaped)
+        x = LeakyReLU()(x)
+        x = Dropout(drop)(x)
+        x = UpSampling2D(size=(2, 2))(x)
+        x = Conv2D(64, (3, 3), padding='same')(x)
+        x = LeakyReLU()(x)
+        x = Dropout(drop)(x)
+        x = UpSampling2D(size=2)(x)
+        x = Conv2D(32, (3, 3), padding='same')(x)
+        x = LeakyReLU()(x)
+        x = Dropout(drop)(x)
+        x = UpSampling2D(size=(2, 2))(x)
+        decoded = Conv2D(3, (3, 3),activation='sigmoid', padding='same')(x)
+
+        return decoded
 
     def __init__(self, shape, drop=0.5):
         super().__init__(shape)

@@ -19,8 +19,9 @@ shape = (64, 64, 3)
 NUM_DIRS = 16
 NUM_FRAMES = 16
 BATCH_SIZE = 32
-LATENT_SIZE = 1024
+LATENT_SIZE = 2048
 ACTION_SIZE = 6
+MOVEMENT_SIZE = 128
 
 class SerpentMinecraftGameAgent(GameAgent):
 
@@ -197,13 +198,13 @@ class SerpentMinecraftGameAgent(GameAgent):
         if choice == 0:
             self.input_controller.tap_key(KeyboardKey.KEY_W)
         elif choice == 1:
-            self.input_controller.move(x=0, y=64, duration=0.05, absolute=False)
+            self.input_controller.move(x=0, y=MOVEMENT_SIZE, duration=0.05, absolute=False)
         elif choice == 2:
-            self.input_controller.move(x=64, y=0, duration=0.05, absolute=False)
+            self.input_controller.move(x=MOVEMENT_SIZE, y=0, duration=0.05, absolute=False)
         elif choice == 3:
-            self.input_controller.move(x=0, y=-64, duration=0.05, absolute=False)
+            self.input_controller.move(x=0, y=-MOVEMENT_SIZE, duration=0.05, absolute=False)
         elif choice == 4:
-            self.input_controller.move(x=-64, y=0, duration=0.05, absolute=False)
+            self.input_controller.move(x=-MOVEMENT_SIZE, y=0, duration=0.05, absolute=False)
 
         # store values for the next iteration's training
         self.prev_choice = choice
