@@ -11,8 +11,8 @@ import numpy as np
 def build_variational(latent, in_layer):
     epsilon_std = 1.0
     x = Flatten()(in_layer)
-    mu = Dense(latent, kernel_regularizer=regularizers.l2(0.01))(x)
-    sigma = Dense(latent, kernel_regularizer=regularizers.l2(0.01))(x)
+    mu = Dense(latent)(x)
+    sigma = Dense(latent)(x)
 
     # taken from https://github.com/keras-team/keras/blob/master/examples/variational_autoencoder.py
     def sampling(args):

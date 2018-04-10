@@ -1,7 +1,6 @@
-from keras import Input, Model, metrics
-from keras.layers import Dense, Concatenate
+from keras import Input, Model
+from keras.layers import Dense, Concatenate, GRU
 from keras.optimizers import Adam
-from keras import backend as K
 import numpy as np
 
 import plugins.SerpentMinecraftGameAgentPlugin.files.helpers.autoencoder as autoencoder
@@ -9,7 +8,7 @@ import plugins.SerpentMinecraftGameAgentPlugin.files.helpers.autoencoder as auto
 def wrap(arr):
     return np.asarray([arr])
 
-class model:
+class RecurrentModel:
     def __init__(self, shape, control_shape):
         self.ae = None
         self.full = None
@@ -17,7 +16,7 @@ class model:
         self.shape = shape
         self.control_shape = control_shape
 
-    def evaluate(self, frame, prev_action):
+    def evaluate(self, frame, prev_action, prev_state):
 
         frame = frame.astype('float32') / 255. # Make sure that the data is between 0 and 1
         frame = wrap(frame)
@@ -39,8 +38,7 @@ class model:
     def train_autoencoder(self, data):
         data = np.asarray(data)
         data = data.astype('float32')/255. # Make sure that the data is between 0 and 1
-        # output = self.ae.train_on_batch(data, data)
-        output = self.ae.train_on_batch(data, None)
+        output = self.ae.train_on_batch(data, data)
         return output
 
     def train_controller(self, latent, prev_action, actions):
@@ -51,35 +49,30 @@ class model:
         return output
 
 
-class my_model(model):
-    def __init__(self, shape, action_shape, latent):
+class MyRecurrent(RecurrentModel):
+    def __init__(self, shape, action_shape, latent, model):
         super().__init__(shape, action_shape)
+        dropout = 0.1
 
         # define the VAE layers
         input_img = Input(shape=shape)
-        encoded = autoencoder.build_encoder(shape, 0.1, input_img)
-        variational, mu, sigma = autoencoder.build_variational(latent, encoded)
-        # decoded = autoencoder.MyAutoencoder.build_decoder(shape, 0.1, variational, latent)
-        decoded = autoencoder.build_decoder(shape, 0.1, variational, latent)
-
-        # define autoencoder loss
-        # Compute VAE loss
-        dec_loss = metrics.mean_squared_error(K.flatten(input_img), K.flatten(decoded))
-        kl_loss = - 0.5 * K.sum(1 + sigma - K.square(mu) - K.exp(sigma), axis=-1)
-        vae_loss = K.mean(dec_loss + kl_loss)
-
+        encoded = autoencoder.build_encoder(shape, dropout, input_img)
+        variational = autoencoder.build_variational(latent, encoded)[0]
+        decoded = autoencoder.MyAutoencoder.build_decoder(shape, dropout, variational, latent)
+        # decoded = autoencoder.build_decoder(shape, 0.1, variational)
 
         # define the ae model
         ae = Model(input_img, decoded)
-        ae.add_loss(vae_loss)
         ae.summary()
         opt = Adam(lr=0.0001)
         # opt = SGD(lr=0.5, momentum=.9, clipvalue=0.5)
-        ae.compile(optimizer=opt)
+        ae.compile(optimizer=opt, loss='mean_squared_error')
         self.ae = ae
 
         # define the model layers
         prev_action = Input((action_shape,), name="Prev_Action")
+        prev_state = Input((model,), name="Prev State")
+        model = GRU(latent, dropout=dropout, recurrent_dropout=dropout)
 
         # define the control layers
         control_input = Concatenate()
@@ -104,4 +97,3 @@ class my_model(model):
         c_train.summary()
         c_train.compile(opt, loss='mean_squared_error')
         self.c_train = c_train
-

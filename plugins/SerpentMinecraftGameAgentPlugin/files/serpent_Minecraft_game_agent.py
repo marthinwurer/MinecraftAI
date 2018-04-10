@@ -7,6 +7,8 @@ import numpy as np
 import os
 
 import re
+
+import scipy.ndimage.filters
 import skimage.transform
 from keras.losses import mean_squared_error
 from serpent.game_agent import GameAgent
@@ -99,6 +101,7 @@ class SerpentMinecraftGameAgent(GameAgent):
     def setup_play(self):
         print("in setup")
         self.input_controller.tap_key(KeyboardKey.KEY_ESCAPE)
+        np.set_printoptions(precision=4)
 
     def handle_pause(self):
         # if first paused in a row, save the current dataset
@@ -127,20 +130,22 @@ class SerpentMinecraftGameAgent(GameAgent):
 
         frame = game_frame.frame
 
-        resized = np.array(skimage.transform.resize(frame, shape[:-1], mode="reflect", order=1) * 255, dtype="uint8")
+        resized = skimage.transform.resize(frame, shape[:-1], mode="reflect", order=1)
+        resized = scipy.ndimage.filters.gaussian_filter(resized, (1,1,0))
+        resized = np.array(resized * 255, dtype="uint8")
 
         # save the frame
         current_dir = (count // NUM_FRAMES) % NUM_DIRS
         current_frame = count % NUM_FRAMES
         self.dataset[current_dir][current_frame] = resized
-        print(current_frame, current_dir)
+        # print(current_frame, current_dir)
 
         filename = self.my_datasets/ "data" / ("data" + str(self.image_num) + ".png")
         matplotlib.image.imsave(filename, resized)
 
 
         # if we're done with the batch, train
-        if current_frame == 0:
+        if current_frame == 0:# and count > 255:
             # pause
             self.input_controller.tap_key(KeyboardKey.KEY_ESCAPE)
             batch = []
@@ -164,7 +169,6 @@ class SerpentMinecraftGameAgent(GameAgent):
 
 
 
-        resized = np.array(skimage.transform.resize(frame, shape[:-1], mode="reflect", order=1) * 255, dtype="uint8")
         # self.model.train(resized)
         prev_action = np.zeros(ACTION_SIZE)
         prev_action[self.prev_choice] = 1.0
@@ -192,7 +196,8 @@ class SerpentMinecraftGameAgent(GameAgent):
         self.visual_debugger.store_image_data(resized, resized.shape, "2")
 
 
-        print(count, choice, loss)
+        # print status
+        print("%7s %2s %12s %s" % (count, choice, loss, actions))
 
         # do outputs
         if choice == 0:
