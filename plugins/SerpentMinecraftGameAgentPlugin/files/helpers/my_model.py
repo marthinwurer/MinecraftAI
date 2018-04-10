@@ -68,6 +68,8 @@ class my_model(model):
         kl_loss = - 0.5 * K.sum(1 + sigma - K.square(mu) - K.exp(sigma), axis=-1)
         vae_loss = K.mean(dec_loss + kl_loss)
 
+        # vae_loss = metrics.mean_squared_error(input_img, decoded)
+
 
         # define the ae model
         ae = Model(input_img, decoded)
