@@ -17,6 +17,14 @@ class model:
         self.shape = shape
         self.control_shape = control_shape
 
+    def save_weights(self, path):
+        path = path/'weights.h5'
+        print("Saving to %s" % path)
+        self.full.save_weights(path)
+
+    def load_weights(self, path):
+        self.full.load_weights(path/'weights.h5', by_name=True) # by name lets it load weights from previous models
+
     def evaluate(self, frame, prev_action):
 
         frame = frame.astype('float32') / 255. # Make sure that the data is between 0 and 1
@@ -38,7 +46,7 @@ class model:
 
     def train_autoencoder(self, data):
         data = np.asarray(data)
-        data = data.astype('float32')/255. # Make sure that the data is between 0 and 1
+        # data = data.astype('float32')/255. # Make sure that the data is between 0 and 1
         # output = self.ae.train_on_batch(data, data)
         output = self.ae.train_on_batch(data, None)
         return output

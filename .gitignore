@@ -2,3 +2,5 @@
 .python-version
 config/
 mydata/
+*.swp
+*.h5
