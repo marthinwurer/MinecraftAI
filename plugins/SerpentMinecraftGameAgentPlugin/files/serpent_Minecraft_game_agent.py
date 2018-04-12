@@ -21,8 +21,8 @@ shape = (64, 64, 3)
 NUM_DIRS = 16
 NUM_FRAMES = 16
 BATCH_SIZE = 32
-LATENT_SIZE = 2048
-ACTION_SIZE = 6
+LATENT_SIZE = 1024
+ACTION_SIZE = 5
 MOVEMENT_SIZE = 128
 
 class SerpentMinecraftGameAgent(GameAgent):
@@ -38,6 +38,7 @@ class SerpentMinecraftGameAgent(GameAgent):
         cwd = os.getcwd()
         print(cwd)
 
+        self.pause_debounce = False
         self.paused = False
         self.count = 0
         self.my_datasets = Path(cwd + "/mydata/")
@@ -72,10 +73,10 @@ class SerpentMinecraftGameAgent(GameAgent):
         #     traceback.print_stack()
         #     # exit(0)
 
-    # def save_data(self):
-    #     # make the directory if it doesn't exist
-    #     dir = self.my_datasets / "data"
-    #     dir.mkdir(parents=True, exist_ok=True)
+    def save_data(self):
+        # make the directory if it doesn't exist
+        dir = self.my_datasets / "data"
+        dir.mkdir(parents=True, exist_ok=True)
     #
     #     # get the highest file number
     #     max = 0
@@ -105,11 +106,37 @@ class SerpentMinecraftGameAgent(GameAgent):
 
     def handle_pause(self):
         # if first paused in a row, save the current dataset
-        if self.paused:
+        if self.pause_debounce:
             return
-        print("in paused")
+        else:
+            self.pause_debounce = True
 
-        self.paused = True
+        print("in paused")
+        comm = input("command> ")
+
+        if comm == 'p':
+            print("Paused control and training")
+            self.paused = not self.paused
+        elif comm == "s":
+            dire = self.my_datasets/"model"
+            dire.mkdir(parents=True, exist_ok=True)
+
+            print("Saving weights")
+            self.model.save_weights(dire)
+        elif comm == "l":
+            dire = self.my_datasets/"data"
+            dire.mkdir(parents=True, exist_ok=True)
+
+            print("loading weights")
+            self.model.load_weights(dire)
+        elif comm == 'q':
+            exit(0)
+
+
+
+
+
+
         # self.save_data()
 
     def handle_play(self, game_frame):
@@ -123,7 +150,11 @@ class SerpentMinecraftGameAgent(GameAgent):
         """
         # serpent play Minecraft SerpentMinecraftGameAgent
 
-        self.paused = False
+        # if the play is paused, don't do anything
+        if self.paused:
+            return
+
+        self.pause_debounce = False
         count = self.count
         self.count += 1
         self.image_num += 1
@@ -132,7 +163,7 @@ class SerpentMinecraftGameAgent(GameAgent):
 
         resized = skimage.transform.resize(frame, shape[:-1], mode="reflect", order=1)
         resized = scipy.ndimage.filters.gaussian_filter(resized, (1,1,0))
-        resized = np.array(resized * 255, dtype="uint8")
+        rgb = np.array(resized * 255, dtype="uint8")
 
         # save the frame
         current_dir = (count // NUM_FRAMES) % NUM_DIRS
@@ -169,7 +200,7 @@ class SerpentMinecraftGameAgent(GameAgent):
 
 
 
-        # self.model.train(resized)
+        # evaluate the neural net
         prev_action = np.zeros(ACTION_SIZE)
         prev_action[self.prev_choice] = 1.0
         outframe, encoded, control, loss = self.model.evaluate(resized, prev_action)
@@ -182,18 +213,19 @@ class SerpentMinecraftGameAgent(GameAgent):
         self.model.train_controller(self.prev_latent, self.prev_action, actions)
 
         if random.random() < 0.25:
-            choice = random.randint(0, 5)
+            choice = random.randint(0, ACTION_SIZE-1)
         else:
             choice = np.argmax(control)
 
 
+        print(rgb.shape, rgb.dtype)
         self.visual_debugger.store_image_data(
             game_frame.frame,
             game_frame.frame.shape,
             "1"
         )
         self.visual_debugger.store_image_data(outframe, outframe.shape, "3")
-        self.visual_debugger.store_image_data(resized, resized.shape, "2")
+        self.visual_debugger.store_image_data(rgb, rgb.shape, "2")
 
 
         # print status
