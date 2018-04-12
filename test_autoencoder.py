@@ -35,7 +35,10 @@ def main(argv):
     print(p)
     dataset = [x for x in p.iterdir() if x.suffix == ".png"]
 
-    m.load_weights(p)
+    try:
+        m.load_weights(p)
+    except:
+        print("No weights found, training from scratch")
 
     # main loop
     # grab 32 frames, train them in a batch
