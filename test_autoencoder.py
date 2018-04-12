@@ -3,6 +3,10 @@ import random
 import sys
 from pathlib import Path
 
+from keras import metrics
+
+from data_generator import *
+
 import scipy.ndimage
 import skimage.transform
 from tqdm import tqdm, trange
@@ -32,24 +36,28 @@ def main(argv):
     print(p)
     dataset = [x for x in p.iterdir() if x.suffix == ".png"]
 
-    m.save_weights(p)
+    m.load_weights(p)
 
     # main loop
     # grab 32 frames, train them in a batch
-    t = trange(500)
-    for ii in t:
-        batch = []
-        for in_dir in range(BATCH_SIZE):
-            # the 0th should always have something in it
+    # t = trange(500)
+    # for ii in t:
+    #     batch = []
+    #     for in_dir in range(BATCH_SIZE):
+    #         # the 0th should always have something in it
+    #
+    #         data = random.choice(dataset)
+    #         data = scipy.ndimage.imread(data)
+    #         data = data[:,:,:3] # remove alpha channel
+    #         data = skimage.transform.resize(data, shape[:-1], mode="reflect", order=1)
+    #         # data = np.array(data * 255, dtype="uint8")
+    #         batch.append(data)
+    #     loss = m.train_autoencoder(batch)
+    #     t.set_postfix(loss=loss)
 
-            data = random.choice(dataset)
-            data = scipy.ndimage.imread(data)
-            data = data[:,:,:3] # remove alpha channel
-            data = skimage.transform.resize(data, shape[:-1], mode="reflect", order=1)
-            # data = np.array(data * 255, dtype="uint8")
-            batch.append(data)
-        loss = m.train_autoencoder(batch)
-        t.set_postfix(loss=loss)
+    generator = AutoencoderDataGenerator(p)
+
+    m.ae.fit_generator(generator, epochs=1, verbose=1)
 
 
     m.save_weights(p)

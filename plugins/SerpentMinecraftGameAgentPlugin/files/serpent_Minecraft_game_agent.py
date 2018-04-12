@@ -162,7 +162,7 @@ class SerpentMinecraftGameAgent(GameAgent):
         frame = game_frame.frame
 
         resized = skimage.transform.resize(frame, shape[:-1], mode="reflect", order=1)
-        resized = scipy.ndimage.filters.gaussian_filter(resized, (1,1,0))
+        # resized = scipy.ndimage.filters.gaussian_filter(resized, (1,1,0))
         rgb = np.array(resized * 255, dtype="uint8")
 
         # save the frame

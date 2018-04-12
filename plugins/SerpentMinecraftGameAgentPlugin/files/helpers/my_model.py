@@ -85,7 +85,7 @@ class my_model(model):
         ae.summary()
         opt = Adam(lr=0.0001)
         # opt = SGD(lr=0.5, momentum=.9, clipvalue=0.5)
-        ae.compile(optimizer=opt)
+        ae.compile(optimizer=opt, metrics=['accuracy'])
         self.ae = ae
 
         # define the model layers

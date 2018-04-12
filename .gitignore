@@ -4,3 +4,4 @@ config/
 mydata/
 *.swp
 *.h5
+__pycache__/
