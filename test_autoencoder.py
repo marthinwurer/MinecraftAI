@@ -9,7 +9,6 @@ from data_generator import *
 
 import scipy.ndimage
 import skimage.transform
-from tqdm import tqdm, trange
 
 import plugins.SerpentMinecraftGameAgentPlugin.files.helpers.my_model as model
 import numpy as np
