@@ -55,10 +55,13 @@ class AutoencoderDataGenerator(keras.utils.Sequence):
         # Generate data
         for i, ID in enumerate(batch_ids):
             # Store sample
-            data = scipy.ndimage.imread(ID)
-            data = data[:,:,:self.n_channels] # remove alpha channel
-            data = skimage.transform.resize(data, self.shape, mode="reflect", order=1)
-            X[i,] = data
+            try:
+                data = scipy.ndimage.imread(ID)
+                data = data[:,:,:self.n_channels] # remove alpha channel
+                data = skimage.transform.resize(data, self.shape, mode="reflect", order=1)
+                X[i,] = data
+            except:
+                pass
 
             # Store class
             # y[i] = self.labels[ID]

@@ -57,9 +57,9 @@ def main(argv):
     #     loss = m.train_autoencoder(batch)
     #     t.set_postfix(loss=loss)
 
-    generator = AutoencoderDataGenerator(p)
+    generator = AutoencoderDataGenerator(p, batch_size=BATCH_SIZE)
 
-    m.ae.fit_generator(generator, epochs=1, verbose=1)
+    m.ae.fit_generator(generator, epochs=10, verbose=1)
 
 
     m.save_weights(p)
