@@ -59,8 +59,12 @@ class AutoencoderDataGenerator(keras.utils.Sequence):
                 data = scipy.ndimage.imread(ID)
                 data = data[:,:,:self.n_channels] # remove alpha channel
                 data = skimage.transform.resize(data, self.shape, mode="reflect", order=1)
+                if np.isnan(data).any():
+                    print("Found nan: %s" % ID)
+                    continue
                 X[i,] = data
-            except:
+            except Exception as e:
+                print("Error reading %s" % ID)
                 pass
 
             # Store class
