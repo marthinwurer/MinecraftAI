@@ -66,8 +66,14 @@ def main(argv):
 
     generator = AutoencoderDataGenerator(p, batch_size=BATCH_SIZE)
 
-    m.ae.fit_generator(generator, epochs=10, verbose=1)
+    m.ae.fit_generator(generator, epochs=10, verbose=1,
+                        use_multiprocessing=True,
+                        workers=6)
 
+    # model.fit_generator(generator=training_generator,
+    #                     validation_data=validation_generator,
+    #                     use_multiprocessing=True,
+    #                     workers=6)
 
     m.save_weights(p)
 

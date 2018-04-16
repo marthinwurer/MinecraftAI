@@ -63,9 +63,10 @@ class AutoencoderDataGenerator(keras.utils.Sequence):
                     print("Found nan: %s" % ID)
                     continue
                 X[i,] = data
+            except IOError as e:
+                print("Error reading %s: %s" % (ID, type(e)))
             except Exception as e:
-                print("Error reading %s" % ID)
-                pass
+                print("Error processing %s: %s" % (ID, type(e)))
 
             # Store class
             # y[i] = self.labels[ID]
