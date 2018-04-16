@@ -1,3 +1,4 @@
+import argparse
 import os
 import random
 import sys
@@ -17,6 +18,10 @@ import numpy as np
 BATCH_SIZE = 32
 
 def main(argv):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("base", help="base directory where dataset data is found")
+    parser.add_argument("--reset", action='store_true', help="Create new weights for the network")
+    args = parser.parse_args()
 
     # shape = (64, 128, 3)
 
@@ -31,12 +36,14 @@ def main(argv):
     # print(m.evaluate(np.zeros(shape, 'uint8'), prev_action))
 
     # open the directory
-    p = Path(argv[1])
+    p = Path(args.base)
     print(p)
-    dataset = [x for x in p.iterdir() if x.suffix == ".png"]
+    # dataset = [x for x in p.iterdir() if x.suffix == ".png"]
 
     try:
-        m.load_weights(p)
+        if not args.reset:
+            print("Loading previous weights")
+            m.load_weights(p)
     except:
         print("No weights found, training from scratch")
 
